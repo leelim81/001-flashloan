@@ -22,6 +22,9 @@ const flashloanWBNB = "1";
 const amountInBUSD = web3.utils.toBN(web3.utils.toWei(flashloanBUSD));
 const amountInWBNB = web3.utils.toBN(web3.utils.toWei(flashloanWBNB));
 
+console.log(`amountInBUSD: ${amountInBUSD}`);
+console.log(`amountInWBNB: ${amountInWBNB}`);
+
 const ApeSwap = new web3.eth.Contract(
   abis.apeSwap.router,
   addresses.apeSwap.router
@@ -44,6 +47,10 @@ const init = async () => {
     .subscribe("newBlockHeaders")
     .on("data", async (block) => {
       console.log(`New block received. Block # ${block.number}`);
+
+      // BUSD/BNB
+      // GetAmountsIn() you call this function to get figure out how BUSD you would need to get n BNB . 
+      // GetAmountOut() will return how much BNB you would get for a give n BUSD.
 
       const amountsOut1 = await ApeSwap.methods
         .getAmountsIn(amountInBUSD, [
@@ -127,33 +134,34 @@ const init = async () => {
       console.log(`PancakeSwap${flashloanWBNB} WBNB/BUSD `);
       console.log(pancakeresults2);
 
-      //Payback fee calc
-
+      // Calculate Payback fee for the exchange. typical 0.003%
       const pancakeBnbPrice =
         (pancakeresults.buy + pancakeresults.sell) / flashloanWBNB / 2;
       const apeswapBnbPrice =
         (aperesults.buy + aperesults.sell) / flashloanWBNB / 2;
 
-      let pancakePaybackCalcBusd = (pancakeresults.buy / 0.997) * 10 ** 18;
-      let apeswapPaybackCalcBusd = (aperesults.buy / 0.997) * 10 ** 18;
-      let apePaybackCalcWbnb = (aperesults2.buy / 0.997) * 10 ** 18;
-      let pancakePaybackCalcWbnb = (pancakeresults2.buy / 0.997) * 10 ** 18;
+      let pancakePaybackCalcBusd = pancakeresults.buy / 0.997;
+      let apeswapPaybackCalcBusd = aperesults.buy / 0.997;
+      let apePaybackCalcWbnb = aperesults2.buy / 0.997;
+      let pancakePaybackCalcWbnb = pancakeresults2.buy / 0.997;
 
       let repayBusdPancakeFee =
-        pancakePaybackCalcBusd / 10 ** 18 - pancakeresults.buy;
+        pancakePaybackCalcBusd - pancakeresults.buy;
       let repayBusdApeswapFee =
-        apeswapPaybackCalcBusd / 10 ** 18 - aperesults.buy;
+        apeswapPaybackCalcBusd - aperesults.buy;
       let repayWbnbPancakeFee =
-        (pancakePaybackCalcWbnb / 10 ** 18 - pancakeresults2.buy) *
+        (pancakePaybackCalcWbnb - pancakeresults2.buy) *
         pancakeBnbPrice;
       let repayWbnbApeswapFee =
-        (apePaybackCalcWbnb / 10 ** 18 - aperesults2.buy) * apeswapBnbPrice;
+        (apePaybackCalcWbnb - aperesults2.buy) * apeswapBnbPrice;
 
+
+      // Calculate Gas
       const gasPrice = await web3.eth.getGasPrice();
       const txCost =
         ((330000 * parseInt(gasPrice)) / 10 ** 18) * pancakeBnbPrice;
 
-      //Profit Calc
+      // Calculate Profit
       const profit1 =
         aperesults.sell - pancakeresults.buy - txCost - repayBusdApeswapFee;
       const profit2 =
@@ -164,6 +172,8 @@ const init = async () => {
         aperesults2.sell - pancakeresults2.buy - txCost - repayWbnbApeswapFee;
 
       
+      console.log(`1 profit1: ${profit1} = aperesults.sell: ${aperesults.sell} pancakeresults.buy: ${pancakeresults.buy} txCost: ${txCost} repayBusdApeswapFee: ${repayBusdApeswapFee} `);
+
       console.log(`profit1: ${profit1} profit2: ${profit2} profit3: ${profit3} profit4: ${profit4} txCost: ${txCost}`);
       const url = initialstateURL
       + `&profit1=${profit1}`
