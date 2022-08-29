@@ -60,8 +60,13 @@ const init = async () => {
       // GetAmountOut() will return how much BNB you would get for a give n BUSD.
 
       //here1 put the price into this fn
-      async function getProfits(usdAmount, usdAddress, bnbAmount, bnbAddress) {
+      async function getProfits(pairs) {
         try {
+          const usdAmount = pairs.amountWei1;
+          const usdAddress = pairs.address1;
+          const bnbAmount = pairs.amountWei2;
+          const bnbAddress = pairs.address2;
+          console.log(`pairsInfo ${pairs.pair1} ${pairs.pair2}`);
           const amountsOut1 = await ApeSwap.methods.getAmountsIn(usdAmount, [bnbAddress,usdAddress]).call();
           const amountsOut2 = await ApeSwap.methods.getAmountsOut(usdAmount,[usdAddress,bnbAddress]).call();
           const amountsOut3 = await PancakeSwap.methods.getAmountsIn(usdAmount,[bnbAddress,usdAddress]).call();
@@ -72,7 +77,7 @@ const init = async () => {
           const amountsOut8 = await PancakeSwap.methods.getAmountsOut(bnbAmount, [bnbAddress,usdAddress]).call();
 
           return {"amountsOut1":amountsOut1,"amountsOut2":amountsOut2,"amountsOut3":amountsOut3,"amountsOut4":amountsOut4,
-          "amountsOut5":amountsOut5,"amountsOut6":amountsOut6,"amountsOut7":amountsOut7,"amountsOut8":amountsOut8};
+          "amountsOut5":amountsOut5,"amountsOut6":amountsOut6,"amountsOut7":amountsOut7,"amountsOut8":amountsOut8, "pairs":pairs};
         }
         catch (error) {
           console.error(`Could not get amountsOut`);
@@ -85,282 +90,276 @@ const init = async () => {
 
 
       // LOOP
-      pairs = pairsInfo[0];
-      pair1 = pairs.pair1;
-      pair2 = pairs.pair2;
-      console.log(`pairsInfo ${pair1} ${pair2}`);
+      for (let i = 0; i < pairsInfo.length; i++) {
 
-      // Get Profit
-      const promise = getProfits(pairs.amountWei1, pairs.address1, pairs.amountWei2, pairs.address2);
-      
-      promise.then((data) => {
-        console.log(`data ${data.amountsOut1}`);
-
-        const aperesults = {
-          buy: data.amountsOut1[0] / 10 ** 18,
-          sell: data.amountsOut2[1] / 10 ** 18,
-        };
-        const aperesults2 = {
-          buy: data.amountsOut5[0] / 10 ** 18,
-          sell: data.amountsOut6[1] / 10 ** 18,
-        };
-  
-        const pancakeresults = {
-          buy: data.amountsOut3[0] / 10 ** 18,
-          sell: data.amountsOut4[1] / 10 ** 18,
-        };
-        const pancakeresults2 = {
-          buy: data.amountsOut7[0] / 10 ** 18,
-          sell: data.amountsOut8[1] / 10 ** 18,
-        };
-  
-        console.log(`ApeSwap ${pairs.amount1} ${pair1}/${pair2}`);
-        console.log(aperesults);
-  
-        console.log(`PancakeSwap ${pairs.amount1} ${pair1}/${pair2}`);
-        console.log(pancakeresults);
-  
-        console.log(`ApeSwap ${pairs.amount2} ${pair2}/${pair1}`);
-        console.log(aperesults2);
-  
-        console.log(`PancakeSwap ${pairs.amount2} ${pair2}/${pair1}`);
-        console.log(pancakeresults2);
-  
-        // Calculate Payback fee for the exchange. typical 0.003%
-        const pancakeBnbPrice =
-          (pancakeresults.buy + pancakeresults.sell) / pairs.amount2 / 2;
-        const apeswapBnbPrice =
-          (aperesults.buy + aperesults.sell) / pairs.amount2 / 2;
-  
-        let pancakePaybackCalcBusd = pancakeresults.buy / 0.997;
-        let apeswapPaybackCalcBusd = aperesults.buy / 0.997;
-        let apePaybackCalcWbnb = aperesults2.buy / 0.997;
-        let pancakePaybackCalcWbnb = pancakeresults2.buy / 0.997;
-  
-        let repayBusdPancakeFee =
-          pancakePaybackCalcBusd - pancakeresults.buy;
-        let repayBusdApeswapFee =
-          apeswapPaybackCalcBusd - aperesults.buy;
-        let repayWbnbPancakeFee =
-          (pancakePaybackCalcWbnb - pancakeresults2.buy) *
-          pancakeBnbPrice;
-        let repayWbnbApeswapFee =
-          (apePaybackCalcWbnb - aperesults2.buy) * apeswapBnbPrice;
-  
-        const txCost =
-          ((330000 * parseInt(gasPrice)) / 10 ** 18) * pancakeBnbPrice;
-  
-        // Calculate Profit
-        const profit1 =
-          aperesults.sell - pancakeresults.buy - txCost - repayBusdApeswapFee;
-        const profit2 =
-          pancakeresults.sell - aperesults.buy - txCost - repayBusdPancakeFee;
-        const profit3 =
-          pancakeresults2.sell - aperesults2.buy - txCost - repayWbnbPancakeFee;
-        const profit4 =
-          aperesults2.sell - pancakeresults2.buy - txCost - repayWbnbApeswapFee;
-  
+        // Get Profit
+        const promise = getProfits(pairsInfo[i]);
         
-        console.log(`1 profit1: ${profit1} = aperesults.sell: ${aperesults.sell} pancakeresults.buy: ${pancakeresults.buy} txCost: ${txCost} repayBusdApeswapFee: ${repayBusdApeswapFee} `);
+        promise.then((data) => {
+          console.log(`data ${data.amountsOut1}`);
+
+          const aperesults = {
+            buy: data.amountsOut1[0] / 10 ** 18,
+            sell: data.amountsOut2[1] / 10 ** 18,
+          };
+          const aperesults2 = {
+            buy: data.amountsOut5[0] / 10 ** 18,
+            sell: data.amountsOut6[1] / 10 ** 18,
+          };
+    
+          const pancakeresults = {
+            buy: data.amountsOut3[0] / 10 ** 18,
+            sell: data.amountsOut4[1] / 10 ** 18,
+          };
+          const pancakeresults2 = {
+            buy: data.amountsOut7[0] / 10 ** 18,
+            sell: data.amountsOut8[1] / 10 ** 18,
+          };
+    
+          console.log(`ApeSwap ${data.pairs.amount1} ${data.pairs.pair1}/${data.pairs.pair2}`);
+          console.log(aperesults);
+    
+          console.log(`PancakeSwap ${data.pairs.amount1} ${data.pairs.pair1}/${data.pairs.pair2}`);
+          console.log(pancakeresults);
+    
+          console.log(`ApeSwap ${data.pairs.amount2} ${data.pairs.pair2}/${data.pairs.pair1}`);
+          console.log(aperesults2);
+    
+          console.log(`PancakeSwap ${data.pairs.amount2} ${data.pairs.pair2}/${data.pairs.pair1}`);
+          console.log(pancakeresults2);
+    
+          // Calculate Payback fee for the exchange. typical 0.003%
+          const pancakeBnbPrice =
+            (pancakeresults.buy + pancakeresults.sell) / data.pairs.amount2 / 2;
+          const apeswapBnbPrice =
+            (aperesults.buy + aperesults.sell) / data.pairs.amount2 / 2;
+    
+          let pancakePaybackCalcBusd = pancakeresults.buy / 0.997;
+          let apeswapPaybackCalcBusd = aperesults.buy / 0.997;
+          let apePaybackCalcWbnb = aperesults2.buy / 0.997;
+          let pancakePaybackCalcWbnb = pancakeresults2.buy / 0.997;
+    
+          let repayBusdPancakeFee =
+            pancakePaybackCalcBusd - pancakeresults.buy;
+          let repayBusdApeswapFee =
+            apeswapPaybackCalcBusd - aperesults.buy;
+          let repayWbnbPancakeFee =
+            (pancakePaybackCalcWbnb - pancakeresults2.buy) *
+            pancakeBnbPrice;
+          let repayWbnbApeswapFee =
+            (apePaybackCalcWbnb - aperesults2.buy) * apeswapBnbPrice;
+    
+          const txCost =
+            ((330000 * parseInt(gasPrice)) / 10 ** 18) * pancakeBnbPrice;
+    
+          // Calculate Profit
+          const profit1 =
+            aperesults.sell - pancakeresults.buy - txCost - repayBusdApeswapFee;
+          const profit2 =
+            pancakeresults.sell - aperesults.buy - txCost - repayBusdPancakeFee;
+          const profit3 =
+            pancakeresults2.sell - aperesults2.buy - txCost - repayWbnbPancakeFee;
+          const profit4 =
+            aperesults2.sell - pancakeresults2.buy - txCost - repayWbnbApeswapFee;
+    
+          
+          console.log(`1 profit1: ${profit1} = aperesults.sell: ${aperesults.sell} pancakeresults.buy: ${pancakeresults.buy} txCost: ${txCost} repayBusdApeswapFee: ${repayBusdApeswapFee} `);
+    
+          console.log(`profit1: ${profit1} profit2: ${profit2} profit3: ${profit3} profit4: ${profit4} txCost: ${txCost}`);
+          const url = initialstateURL
+          + `&${data.pairs.pair1}${data.pairs.pair2}_profit1=${profit1}`
+          + `&${data.pairs.pair1}${data.pairs.pair2}_profit2=${profit2}`
+          + `&${data.pairs.pair1}${data.pairs.pair2}_profit3=${profit3}`
+          + `&${data.pairs.pair1}${data.pairs.pair2}_profit4=${profit4}`
+          + `&txCost=${txCost}`
+          + `&blockNumber=${block.number}`;
+          request.post(url, {}, function(err, res) {
+            // console.log(err, res);
+          });
+
+
+          async function executeProfits() {
+            try {
+
+              console.log("Arb opportunity found!");
+              console.log(`data.pairs.address2 ${data.pairs.address2} `);
+              console.log(`data.pairs.address1 ${data.pairs.address1} `);
+              console.log(`data.pairs.amountWei2.toString() ${data.pairs.amountWei2.toString()}`);
+
+              if (profit1 > 0 && profit1 > profit2) {
+                console.log("Arb opportunity found!");
+                console.log(`Flashloan WBNB on Apeswap at ${aperesults.buy} `);
+                console.log(`Sell WBNB on PancakeSwap at ${pancakeresults.sell} `);
+                console.log(`Expected cost of flashswap: ${repayBusdPancakeFee}`);
+                console.log(`Expected Gas cost: ${txCost}`);
+                console.log(`Expected profit: ${profit1} BUSD`);
+        
+                // let tx = flashloan.methods.startArbitrage(
+                //   addresses.tokens.WBNB, //token1
+                //   addresses.tokens.BUSD, //token2
+                //   amountInWBNB.toString(), //amount0
+                //   0, //amount1
+                //   addresses.apeSwap.factory, //apefactory
+                //   addresses.pancakeSwap.router, //pancakerouter
+                //   apePaybackCalcWbnb.toString()
+                // );
+    
+                let tx = flashloan.methods.startArbitrage(
+                  data.pairs.address2, //token1
+                  data.pairs.address1, //token2
+                  data.pairs.amountWei2.toString(), //amount0
+                  0, //amount1
+                  addresses.apeSwap.factory, //apefactory
+                  addresses.pancakeSwap.router, //pancakerouter
+                  apePaybackCalcWbnb.toString()
+                );
+
+                const data = tx.encodeABI();
+                const txData = {
+                  from: admin,
+                  to: flashloan.options.address,
+                  data,
+                  gas: "330000",
+                  gasPrice: gasPrice,
+                };
+                const receipt = await web3.eth.sendTransaction(txData);
+                console.log(`Transaction hash: ${receipt.transactionHash}`);
+              }
+        
+              if (profit2 > 0 && profit2 > profit1) {
+                console.log("Arb opportunity found!");
+                console.log(`Buy WBNB from PancakeSwap at ${pancakeresults.buy} `);
+                console.log(`Sell WBNB from ApeSwap at ${aperesults.sell}`);
+                console.log(`Expected cost of flashswap: ${repayBusdApeswapFee}`);
+                console.log(`Expected Gas cost: ${txCost}`);
+                console.log(`Expected profit: ${profit2} BUSD`);
+        
+                // let tx = flashloan.methods.startArbitrage(
+                //   addresses.tokens.WBNB, //token1
+                //   addresses.tokens.BUSD, //token2
+                //   amountInWBNB.toString(), //amount0
+                //   0, //amount1
+                //   addresses.pancakeSwap.factory, //pancakefactory
+                //   addresses.apeSwap.router, // aperouter
+                //   pancakePaybackCalcWbnb.toString()
+                // );
+        
+                let tx = flashloan.methods.startArbitrage(
+                  data.pairs.address2, //token1
+                  data.pairs.address1, //token2
+                  data.pairs.amountWei2.toString(), //amount0
+                  0, //amount1
+                  addresses.pancakeSwap.factory, //pancakefactory
+                  addresses.apeSwap.router, // aperouter
+                  pancakePaybackCalcWbnb.toString()
+                );
+        
+                const data = tx.encodeABI();
+                const txData = {
+                  from: admin,
+                  to: flashloan.options.address,
+                  data,
+                  gas: "330000",
+                  gasPrice: gasPrice,
+                };
+                const receipt = await web3.eth.sendTransaction(txData);
+                console.log(`Transaction hash: ${receipt.transactionHash}`);
+              }
+        
+              if (profit3 > 0 && profit3 > profit4) {
+                console.log("Arb opportunity found!");
+                console.log(`Flashloan BUSD on Apeswap at ${aperesults2.buy} `);
+                console.log(`Sell BUSD on PancakeSwap at ${pancakeresults2.sell} `);
+                console.log(`Expected cost of flashswap: ${repayWbnbApeswapFee}`);
+                console.log(`Expected Gas cost: ${txCost}`);
+                console.log(`Expected profit: ${profit3} WBNB`);
+        
+                // let tx = flashloan.methods.startArbitrage(
+                //   addresses.tokens.BUSD, //token1
+                //   addresses.tokens.WBNB, //token2
+                //   0, //amount0
+                //   amountInBUSD.toString(), //amount1
+                //   addresses.apeSwap.factory, //apefactory
+                //   addresses.pancakeSwap.router, //pancakerouter
+                //   apeswapPaybackCalcBusd.toString()
+                // );
   
-        console.log(`profit1: ${profit1} profit2: ${profit2} profit3: ${profit3} profit4: ${profit4} txCost: ${txCost}`);
-        const url = initialstateURL
-        + `&profit1=${profit1}`
-        + `&profit2=${profit2}`
-        + `&profit3=${profit3}`
-        + `&profit4=${profit4}`
-        + `&txCost=${txCost}`
-        + `&blockNumber=${block.number}`;
-        request.post(url, {}, function(err, res) {
-          // console.log(err, res);
-        });
+                let tx = flashloan.methods.startArbitrage(
+                  data.pairs.address1, //token1
+                  data.pairs.address2, //token2
+                  0, //amount0
+                  data.pairs.amountWei1.toString(), //amount1
+                  addresses.apeSwap.factory, //apefactory
+                  addresses.pancakeSwap.router, //pancakerouter
+                  apeswapPaybackCalcBusd.toString()
+                );
 
+                const data = tx.encodeABI();
+                const txData = {
+                  from: admin,
+                  to: flashloan.options.address,
+                  data,
+                  gas: "330000",
+                  gasPrice: gasPrice,
+                };
+                const receipt = await web3.eth.sendTransaction(txData);
+                console.log(`Transaction hash: ${receipt.transactionHash}`);
+              }
+        
+              if (profit4 > 0 && profit4 > profit3) {
+                console.log("Arb opportunity found!");
+                console.log(`Flashloan BUSD on PancakeSwap at ${pancakeresults2.buy} `);
+                console.log(`Sell BUSD on  at Apeswap ${aperesults2.sell} `);
+                console.log(`Expected cost of flashswap: ${repayWbnbPancakeFee}`);
+                console.log(`Expected Gas cost: ${txCost}`);
+                console.log(`Expected profit: ${profit4} WBNB`);
+        
+                // let tx = flashloan.methods.startArbitrage(
+                //   //token1
+                //   addresses.tokens.WBNB,
+                //   addresses.tokens.BUSD, //token2
+                //   0, //amount0
+                //   amountInBUSD.toString(), //amount1
+                //   addresses.pancakeSwap.factory, //pancakeFactory
+                //   addresses.apeSwap.router, //apeRouter
+                //   pancakePaybackCalcBusd.toString()
+                // );
+        
+                let tx = flashloan.methods.startArbitrage(
+                  //token1
+                  data.pairs.address1,
+                  data.pairs.address2, //token2
+                  0, //amount0
+                  data.pairs.amountWei1.toString(), //amount1
+                  addresses.pancakeSwap.factory, //pancakeFactory
+                  addresses.apeSwap.router, //apeRouter
+                  pancakePaybackCalcBusd.toString()
+                );
 
-        async function executeProfits() {
-          try {
-            console.log("AAAAAAAAAAAA!");
-            console.log(`${addresses.tokens.WBNB}`);
-            console.log(`${addresses.tokens.BUSD}`);
-            console.log(`${amountInWBNB.toString()}`);
-
-            console.log(`${pairs.address2}`);
-            console.log(`${pairs.address1}`);
-            console.log(`${pairs.amountWei2.toString()}`);
-
-            if (profit1 > 0 && profit1 > profit2) {
-              console.log("Arb opportunity found!");
-              console.log(`Flashloan WBNB on Apeswap at ${aperesults.buy} `);
-              console.log(`Sell WBNB on PancakeSwap at ${pancakeresults.sell} `);
-              console.log(`Expected cost of flashswap: ${repayBusdPancakeFee}`);
-              console.log(`Expected Gas cost: ${txCost}`);
-              console.log(`Expected profit: ${profit1} BUSD`);
-      
-              // let tx = flashloan.methods.startArbitrage(
-              //   addresses.tokens.WBNB, //token1
-              //   addresses.tokens.BUSD, //token2
-              //   amountInWBNB.toString(), //amount0
-              //   0, //amount1
-              //   addresses.apeSwap.factory, //apefactory
-              //   addresses.pancakeSwap.router, //pancakerouter
-              //   apePaybackCalcWbnb.toString()
-              // );
-   
-              let tx = flashloan.methods.startArbitrage(
-                pairs.address2, //token1
-                pairs.address1, //token2
-                pairs.amountWei2.toString(), //amount0
-                0, //amount1
-                addresses.apeSwap.factory, //apefactory
-                addresses.pancakeSwap.router, //pancakerouter
-                apePaybackCalcWbnb.toString()
-              );
-
-              const data = tx.encodeABI();
-              const txData = {
-                from: admin,
-                to: flashloan.options.address,
-                data,
-                gas: "330000",
-                gasPrice: gasPrice,
-              };
-              const receipt = await web3.eth.sendTransaction(txData);
-              console.log(`Transaction hash: ${receipt.transactionHash}`);
+                const data = tx.encodeABI();
+                const txData = {
+                  from: admin,
+                  to: flashloan.options.address,
+                  data,
+                  gas: "330000",
+                  gasPrice: gasPrice,
+                };
+                const receipt = await web3.eth.sendTransaction(txData);
+                console.log(`Transaction hash: ${receipt.transactionHash}`);
+              }
             }
-      
-            if (profit2 > 0 && profit2 > profit1) {
-              console.log("Arb opportunity found!");
-              console.log(`Buy WBNB from PancakeSwap at ${pancakeresults.buy} `);
-              console.log(`Sell WBNB from ApeSwap at ${aperesults.sell}`);
-              console.log(`Expected cost of flashswap: ${repayBusdApeswapFee}`);
-              console.log(`Expected Gas cost: ${txCost}`);
-              console.log(`Expected profit: ${profit2} BUSD`);
-      
-              // let tx = flashloan.methods.startArbitrage(
-              //   addresses.tokens.WBNB, //token1
-              //   addresses.tokens.BUSD, //token2
-              //   amountInWBNB.toString(), //amount0
-              //   0, //amount1
-              //   addresses.pancakeSwap.factory, //pancakefactory
-              //   addresses.apeSwap.router, // aperouter
-              //   pancakePaybackCalcWbnb.toString()
-              // );
-      
-              let tx = flashloan.methods.startArbitrage(
-                pairs.address2, //token1
-                pairs.address1, //token2
-                pairs.amountWei2.toString(), //amount0
-                0, //amount1
-                addresses.pancakeSwap.factory, //pancakefactory
-                addresses.apeSwap.router, // aperouter
-                pancakePaybackCalcWbnb.toString()
-              );
-      
-              const data = tx.encodeABI();
-              const txData = {
-                from: admin,
-                to: flashloan.options.address,
-                data,
-                gas: "330000",
-                gasPrice: gasPrice,
-              };
-              const receipt = await web3.eth.sendTransaction(txData);
-              console.log(`Transaction hash: ${receipt.transactionHash}`);
-            }
-      
-            if (profit3 > 0 && profit3 > profit4) {
-              console.log("Arb opportunity found!");
-              console.log(`Flashloan BUSD on Apeswap at ${aperesults2.buy} `);
-              console.log(`Sell BUSD on PancakeSwap at ${pancakeresults2.sell} `);
-              console.log(`Expected cost of flashswap: ${repayWbnbApeswapFee}`);
-              console.log(`Expected Gas cost: ${txCost}`);
-              console.log(`Expected profit: ${profit3} WBNB`);
-      
-              // let tx = flashloan.methods.startArbitrage(
-              //   addresses.tokens.BUSD, //token1
-              //   addresses.tokens.WBNB, //token2
-              //   0, //amount0
-              //   amountInBUSD.toString(), //amount1
-              //   addresses.apeSwap.factory, //apefactory
-              //   addresses.pancakeSwap.router, //pancakerouter
-              //   apeswapPaybackCalcBusd.toString()
-              // );
- 
-              let tx = flashloan.methods.startArbitrage(
-                pairs.address1, //token1
-                pairs.address2, //token2
-                0, //amount0
-                pairs.amountWei1.toString(), //amount1
-                addresses.apeSwap.factory, //apefactory
-                addresses.pancakeSwap.router, //pancakerouter
-                apeswapPaybackCalcBusd.toString()
-              );
-
-              const data = tx.encodeABI();
-              const txData = {
-                from: admin,
-                to: flashloan.options.address,
-                data,
-                gas: "330000",
-                gasPrice: gasPrice,
-              };
-              const receipt = await web3.eth.sendTransaction(txData);
-              console.log(`Transaction hash: ${receipt.transactionHash}`);
-            }
-      
-            if (profit4 > 0 && profit4 > profit3) {
-              console.log("Arb opportunity found!");
-              console.log(`Flashloan BUSD on PancakeSwap at ${pancakeresults2.buy} `);
-              console.log(`Sell BUSD on  at Apeswap ${aperesults2.sell} `);
-              console.log(`Expected cost of flashswap: ${repayWbnbPancakeFee}`);
-              console.log(`Expected Gas cost: ${txCost}`);
-              console.log(`Expected profit: ${profit4} WBNB`);
-      
-              // let tx = flashloan.methods.startArbitrage(
-              //   //token1
-              //   addresses.tokens.WBNB,
-              //   addresses.tokens.BUSD, //token2
-              //   0, //amount0
-              //   amountInBUSD.toString(), //amount1
-              //   addresses.pancakeSwap.factory, //pancakeFactory
-              //   addresses.apeSwap.router, //apeRouter
-              //   pancakePaybackCalcBusd.toString()
-              // );
-      
-              let tx = flashloan.methods.startArbitrage(
-                //token1
-                pairs.address1,
-                pairs.address2, //token2
-                0, //amount0
-                pairs.amountWei1.toString(), //amount1
-                addresses.pancakeSwap.factory, //pancakeFactory
-                addresses.apeSwap.router, //apeRouter
-                pancakePaybackCalcBusd.toString()
-              );
-
-              const data = tx.encodeABI();
-              const txData = {
-                from: admin,
-                to: flashloan.options.address,
-                data,
-                gas: "330000",
-                gasPrice: gasPrice,
-              };
-              const receipt = await web3.eth.sendTransaction(txData);
-              console.log(`Transaction hash: ${receipt.transactionHash}`);
+            catch (error) {
+              console.error(`Could not executeProfits ${error}`);
             }
           }
-          catch (error) {
-            console.error(`Could not executeProfits`);
-          }
-        }
 
-
-        // Execute Profit
-        const promiseExecuteProfits = executeProfits();
-        promiseExecuteProfits.then((data) => {
-          console.log(``);
+          // Execute Profit
+          const promiseExecuteProfits = executeProfits();
+          promiseExecuteProfits.then((data) => {
+            console.log(``);
+          });
         });
-      });
+      }
 
     })
     .on("error", (error) => {
